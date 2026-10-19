@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskhub-api"
+version = "0.1.0"
+description = "Learning project: TaskHub REST API built with FastAPI and SQLAlchemy"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "alembic>=1.14,<2.0",
+    "email-validator>=2.2,<3.0",
+    "fastapi>=0.115,<1.0",
+    "pydantic>=2.10,<3.0",
+    "python-dotenv>=1.0,<2.0",
+    "SQLAlchemy>=2.0,<3.0",
+    "uvicorn[standard]>=0.34,<1.0",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2,<4.0"]
+mysql = ["PyMySQL>=1.1,<2.0"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
