@@ -1,0 +1,13 @@
+.venv/
+.env
+plans/
+*.egg-info/
+.takumi/
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
