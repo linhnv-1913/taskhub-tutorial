@@ -18,7 +18,7 @@ Copy-Item .env.example .env
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-Open [Swagger UI](http://127.0.0.1:8000/docs). SQLite creates `taskhub.db` in the current directory after migrations run.
+Open [Swagger UI](http://127.0.0.1:8000/docs). SQLite creates `taskhub.db` in the project root after migrations run, regardless of the current working directory.
 
 ## Database configuration
 
