@@ -4,6 +4,8 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
+from app.core import constants
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATABASE_URL = f"sqlite:///{(PROJECT_ROOT / 'taskhub.db').as_posix()}"
 
@@ -37,13 +39,20 @@ class Settings(BaseSettings):
 
     database_url: str = DEFAULT_DATABASE_URL
     jwt_secret_key: SecretStr
-    access_token_expire_minutes: int = Field(default=15, ge=1, le=1440)
+    access_token_expire_minutes: int = Field(
+        default=constants.DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES,
+        ge=1,
+        le=constants.MAX_ACCESS_TOKEN_EXPIRE_MINUTES,
+    )
 
     @field_validator("jwt_secret_key")
     @classmethod
     def validate_jwt_secret_key(cls, value: SecretStr) -> SecretStr:
-        if len(value.get_secret_value()) < 64:
-            raise ValueError("JWT_SECRET_KEY must contain at least 64 characters")
+        if len(value.get_secret_value()) < constants.JWT_SECRET_KEY_MIN_LENGTH:
+            raise ValueError(
+                "JWT_SECRET_KEY must contain at least "
+                f"{constants.JWT_SECRET_KEY_MIN_LENGTH} characters"
+            )
         return value
 
 

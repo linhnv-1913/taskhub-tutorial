@@ -7,7 +7,10 @@ from app.schemas.tag import TagRead
 
 
 class TaskCreate(BaseSchema):
-    title: str = Field(min_length=1, max_length=constants.TASK_TITLE_MAX_LENGTH)
+    title: str = Field(
+        min_length=constants.TASK_TITLE_MIN_LENGTH,
+        max_length=constants.TASK_TITLE_MAX_LENGTH,
+    )
     description: str | None = None
     priority: TaskPriority = TaskPriority.MEDIUM
     assignee_id: PositiveInt | None = None

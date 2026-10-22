@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column(
             "role",
             sa.String(length=20),
-            server_default=sa.text("'USER'"),
+            server_default=sa.text("'MEMBER'"),
             nullable=False,
         ),
     )
@@ -59,9 +59,16 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("user_id", "task_id"),
     )
+    op.create_index(
+        "ix_task_bookmarks_task_id",
+        "task_bookmarks",
+        ["task_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:
+    op.drop_index("ix_task_bookmarks_task_id", table_name="task_bookmarks")
     op.drop_table("task_bookmarks")
     op.drop_index("ix_tasks_priority", table_name="tasks")
     op.drop_column("tasks", "priority")

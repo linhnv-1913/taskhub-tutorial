@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Table, func
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Table, func
 
 from app.db.base import Base
 
@@ -16,4 +16,5 @@ task_bookmarks = Table(
         primary_key=True,
     ),
     Column("created_at", DateTime(timezone=True), server_default=func.now(), nullable=False),
+    Index("ix_task_bookmarks_task_id", "task_id"),
 )

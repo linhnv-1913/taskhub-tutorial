@@ -1,8 +1,10 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.dependencies import CurrentActiveUserDep, SessionDep
-from app.api.responses import error_responses
+from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT, error_responses
 from app.core import messages
 from app.core.exceptions import ResourceNotFoundError
 from app.core.security import create_access_token
@@ -14,24 +16,13 @@ router = APIRouter()
 
 
 @router.post(
-    "",
-    include_in_schema=False,
-    response_model=UserRead,
-    status_code=status.HTTP_201_CREATED,
-    responses=error_responses(
-        status.HTTP_409_CONFLICT,
-        status.HTTP_422_UNPROCESSABLE_ENTITY,
-        status.HTTP_500_INTERNAL_SERVER_ERROR,
-    ),
-)
-@router.post(
     "/register",
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
     summary="Register a user",
     responses=error_responses(
         status.HTTP_409_CONFLICT,
-        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        HTTP_422_UNPROCESSABLE_CONTENT,
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     ),
 )
@@ -46,13 +37,13 @@ def register_user_route(payload: UserCreate, db: SessionDep) -> UserRead:
     responses=error_responses(
         status.HTTP_401_UNAUTHORIZED,
         status.HTTP_403_FORBIDDEN,
-        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        HTTP_422_UNPROCESSABLE_CONTENT,
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     ),
 )
 def login_user(
     db: SessionDep,
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> TokenResponse:
     user = authenticate_user(db, form_data.username, form_data.password)
     return TokenResponse(access_token=create_access_token(user.id))
@@ -80,7 +71,7 @@ def read_current_user(current_user: CurrentActiveUserDep) -> UserRead:
         status.HTTP_401_UNAUTHORIZED,
         status.HTTP_403_FORBIDDEN,
         status.HTTP_409_CONFLICT,
-        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        HTTP_422_UNPROCESSABLE_CONTENT,
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     ),
 )
@@ -97,11 +88,17 @@ def update_current_user(
     response_model=UserProfile,
     summary="Get a user profile",
     responses=error_responses(
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
         status.HTTP_404_NOT_FOUND,
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     ),
 )
-def read_user_profile(username: str, db: SessionDep) -> UserProfile:
+def read_user_profile(
+    username: str,
+    db: SessionDep,
+    _current_user: CurrentActiveUserDep,
+) -> UserProfile:
     user = get_user_profile(db, username)
     if user is None:
         raise ResourceNotFoundError(messages.USER_NOT_FOUND)

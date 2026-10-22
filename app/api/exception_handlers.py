@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT
 from app.core import messages
 from app.core.exceptions import ApplicationError
 from app.schemas.common import ErrorResponse, ValidationIssue
@@ -34,7 +35,7 @@ async def handle_request_validation_error(
         errors=issues,
     )
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=HTTP_422_UNPROCESSABLE_CONTENT,
         content=response.model_dump(mode="json", exclude_none=True),
     )
 

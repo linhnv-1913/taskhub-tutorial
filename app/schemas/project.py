@@ -6,14 +6,17 @@ from app.schemas.task import TaskRead
 
 
 class ProjectCreate(BaseSchema):
-    name: str = Field(min_length=1, max_length=constants.PROJECT_NAME_MAX_LENGTH)
+    name: str = Field(
+        min_length=constants.PROJECT_NAME_MIN_LENGTH,
+        max_length=constants.PROJECT_NAME_MAX_LENGTH,
+    )
     description: str | None = None
 
 
 class ProjectUpdate(BaseSchema):
     name: str | None = Field(
         default=None,
-        min_length=1,
+        min_length=constants.PROJECT_NAME_MIN_LENGTH,
         max_length=constants.PROJECT_NAME_MAX_LENGTH,
     )
     description: str | None = None

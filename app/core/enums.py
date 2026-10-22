@@ -3,6 +3,8 @@ from enum import StrEnum
 
 class TaskStatus(StrEnum):
     TODO = "TODO"
+    IN_PROGRESS = "IN_PROGRESS"
+    DONE = "DONE"
 
 
 class TaskPriority(StrEnum):
@@ -12,5 +14,6 @@ class TaskPriority(StrEnum):
 
 
 class UserRole(StrEnum):
-    USER = "USER"
     ADMIN = "ADMIN"
+    PM = "PM"
+    MEMBER = "MEMBER"

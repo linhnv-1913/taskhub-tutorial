@@ -5,7 +5,10 @@ from app.schemas.common import BaseSchema, ORMReadModel
 
 
 class TagCreate(BaseSchema):
-    name: str = Field(min_length=1, max_length=constants.TAG_NAME_MAX_LENGTH)
+    name: str = Field(
+        min_length=constants.TAG_NAME_MIN_LENGTH,
+        max_length=constants.TAG_NAME_MAX_LENGTH,
+    )
 
 
 class TagRead(ORMReadModel):

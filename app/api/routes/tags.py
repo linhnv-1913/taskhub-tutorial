@@ -1,8 +1,14 @@
 from fastapi import APIRouter, status
 
-from app.api.dependencies import AdminUserDep, SessionDep
-from app.api.responses import error_responses
+from app.api.dependencies import (
+    AdminUserDep,
+    CurrentActiveUserDep,
+    PaginationDep,
+    SessionDep,
+)
+from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT, error_responses
 from app.crud.tags import create_tag, list_tags
+from app.schemas.common import PaginatedResponse
 from app.schemas.tag import TagCreate, TagRead
 
 router = APIRouter()
@@ -10,12 +16,24 @@ router = APIRouter()
 
 @router.get(
     "",
-    response_model=list[TagRead],
+    response_model=PaginatedResponse[TagRead],
     summary="List tags",
-    responses=error_responses(status.HTTP_500_INTERNAL_SERVER_ERROR),
+    responses=error_responses(
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+        HTTP_422_UNPROCESSABLE_CONTENT,
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    ),
 )
-def read_tags(db: SessionDep) -> list[TagRead]:
-    return [TagRead.model_validate(tag) for tag in list_tags(db)]
+def read_tags(
+    db: SessionDep,
+    pagination: PaginationDep,
+    _current_user: CurrentActiveUserDep,
+) -> PaginatedResponse[TagRead]:
+    tags, total = list_tags(db, pagination)
+    return PaginatedResponse[TagRead](
+        items=[TagRead.model_validate(tag) for tag in tags], total=total
+    )
 
 
 @router.post(
@@ -27,7 +45,7 @@ def read_tags(db: SessionDep) -> list[TagRead]:
         status.HTTP_401_UNAUTHORIZED,
         status.HTTP_403_FORBIDDEN,
         status.HTTP_409_CONFLICT,
-        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        HTTP_422_UNPROCESSABLE_CONTENT,
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     ),
 )

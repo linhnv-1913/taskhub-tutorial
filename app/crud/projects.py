@@ -1,12 +1,11 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core import messages
-from app.core.exceptions import InvalidResourceReferenceError
 from app.crud.transactions import commit_or_rollback
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
+from app.schemas.common import PaginationParams
 from app.schemas.project import ProjectCreate, ProjectUpdate
 
 
@@ -16,9 +15,17 @@ def _project_details_statement():
     )
 
 
-def list_projects(db: Session) -> list[Project]:
-    statement = select(Project).order_by(Project.id)
-    return list(db.scalars(statement).all())
+def list_projects(
+    db: Session, pagination: PaginationParams
+) -> tuple[list[Project], int]:
+    statement = (
+        select(Project)
+        .order_by(Project.id)
+        .offset(pagination.skip)
+        .limit(pagination.limit)
+    )
+    total = db.scalar(select(func.count()).select_from(Project)) or 0
+    return list(db.scalars(statement).all()), total
 
 
 def get_project(db: Session, project_id: int) -> Project | None:
@@ -26,10 +33,8 @@ def get_project(db: Session, project_id: int) -> Project | None:
     return db.scalars(statement).one_or_none()
 
 
-def create_project(db: Session, payload: ProjectCreate, owner_id: int) -> Project:
-    if db.get(User, owner_id) is None:
-        raise InvalidResourceReferenceError(messages.PROJECT_OWNER_NOT_FOUND)
-    project = Project(**payload.model_dump(), owner_id=owner_id)
+def create_project(db: Session, payload: ProjectCreate, owner: User) -> Project:
+    project = Project(**payload.model_dump(), owner=owner)
     db.add(project)
     commit_or_rollback(db)
     db.refresh(project)
@@ -37,21 +42,14 @@ def create_project(db: Session, payload: ProjectCreate, owner_id: int) -> Projec
 
 
 def update_project(
-    db: Session, project_id: int, payload: ProjectUpdate
-) -> Project | None:
-    project = db.get(Project, project_id)
-    if project is None:
-        return None
+    db: Session, project: Project, payload: ProjectUpdate
+) -> Project:
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(project, field, value)
     commit_or_rollback(db)
-    return get_project(db, project_id)
+    return project
 
 
-def delete_project(db: Session, project_id: int) -> bool:
-    project = db.get(Project, project_id)
-    if project is None:
-        return False
+def delete_project(db: Session, project: Project) -> None:
     db.delete(project)
     commit_or_rollback(db)
-    return True

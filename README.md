@@ -44,25 +44,27 @@ To install a database driver from `pyproject.toml`, use `python -m pip install -
 - `POST /api/users/login` accepts the form fields `username` (username or email) and `password`; the response contains `access_token` and `token_type=bearer`.
 - Send the token in the `Authorization: Bearer <access_token>` header.
 - `GET /api/users/me` returns the authenticated user's account. `PUT /api/users/me` replaces the current user's `username`, `email`, and `full_name`.
-- `POST /api/users` remains as an alias hidden from OpenAPI for compatibility and also requires a password.
-- New projects belong to the authenticated user. Only the project owner or an admin can update or delete a project, or create tasks in it.
-- Only admins can create tags (`POST /api/tags`). Registration does not accept a role or active-state field. An operator can grant admin access to a verified user through a trusted database command, such as `UPDATE users SET role = 'ADMIN' WHERE id = <verified-user-id>;`. The API has no endpoint for self-escalating privileges.
-- Existing users remain active after the migration but have no `password_hash`, so they cannot log in until an operator sets a password through a trusted process.
+- Registration is available only through `POST /api/users/register`. It does not accept a role or active-state field.
+- New projects belong to the authenticated user. The project owner or an admin can update or delete a project and create tasks in it. The PM role does not grant access to projects owned by other users.
+- Only admins can create tags (`POST /api/tags`). Roles are `MEMBER`, `PM`, and `ADMIN`. An operator can grant `PM` or `ADMIN` access to a verified user through a trusted database command, such as `UPDATE users SET role = 'ADMIN' WHERE id = <verified-user-id>;`. The API has no endpoint for self-escalating privileges.
+- Existing users remain active and are migrated to the `MEMBER` role, but have no `password_hash`; an operator must set a password through a trusted process before they can log in.
 
 ## Task endpoints
 
-- `GET /api/tasks?status=TODO&priority=HIGH` filters by status and priority and returns results in stable ID order. Priorities are `LOW`, `MEDIUM`, and `HIGH`; the default is `MEDIUM`.
-- `GET /api/projects/{project_id}/tasks?skip=10&limit=5` supports pagination; `skip` must be non-negative and `limit` must be from 1 to 100 (default 20).
+- `GET /api/tasks?status=IN_PROGRESS&priority=HIGH&skip=0&limit=20` filters by status and priority and returns `items` and the matching `total` in stable ID order. Statuses are `TODO`, `IN_PROGRESS`, and `DONE`. Priorities are `LOW`, `MEDIUM`, and `HIGH`; the default is `MEDIUM`.
+- `GET /api/projects/{project_id}/tasks?skip=10&limit=5` returns `items` and the matching `total`; `skip` must be non-negative and `limit` must be from 1 to 100 (default 20).
+- `GET /api/projects?skip=0&limit=20` and `GET /api/tags?skip=0&limit=20` use the same paginated response shape and bounds.
 - `POST /api/tasks/{task_id}/bookmark` requires an active authenticated user. The first request returns 201; repeated requests return 200. Each bookmark belongs to one user.
+- `DELETE /api/tasks/{task_id}/bookmark` removes the current user's bookmark and returns 204. It returns 404 if the task or bookmark does not exist.
 
 ## Core CRUD endpoints
 
-- `GET /api/users/{username}/profile` returns the profile and project list.
+- `GET /api/users/{username}/profile` returns the profile and project list to an authenticated user.
 - Projects support `GET` and `POST /api/projects`, `GET`, `PATCH`, and `DELETE /api/projects/{project_id}`.
 - Tasks support `GET` and `POST /api/projects/{project_id}/tasks`.
 - Tags support `GET /api/tags` and `POST /api/tags`.
 
-Project, task, and tag read endpoints are public. Project creation, project updates/deletions, task creation, and tag creation require the permissions described above.
+Project, task, tag, and profile read endpoints require an active bearer token. Project, task, and tag lists are paginated with `items` and `total` fields. Project creation, project updates/deletions, task creation, and tag creation require the permissions described above.
 
 ## Database and project structure
 

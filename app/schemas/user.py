@@ -18,7 +18,7 @@ Password = Annotated[
 
 class UserCreate(BaseSchema):
     username: str = Field(
-        min_length=3,
+        min_length=constants.USERNAME_MIN_LENGTH,
         max_length=constants.USERNAME_MAX_LENGTH,
     )
     email: EmailStr = Field(max_length=constants.USER_EMAIL_MAX_LENGTH)
@@ -31,7 +31,7 @@ class UserCreate(BaseSchema):
 
 class UserUpdate(BaseSchema):
     username: str = Field(
-        min_length=3,
+        min_length=constants.USERNAME_MIN_LENGTH,
         max_length=constants.USERNAME_MAX_LENGTH,
     )
     email: EmailStr = Field(max_length=constants.USER_EMAIL_MAX_LENGTH)
