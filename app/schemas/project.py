@@ -1,24 +1,29 @@
-from pydantic import Field, field_validator
+from pydantic import Field, PositiveInt, field_validator
 
-from app.schemas.common import ORMReadModel
+from app.core import constants, messages
+from app.schemas.common import BaseSchema, ORMReadModel
 from app.schemas.task import TaskRead
 
 
-class ProjectCreate(ORMReadModel):
-    name: str = Field(min_length=1, max_length=150)
+class ProjectCreate(BaseSchema):
+    name: str = Field(min_length=1, max_length=constants.PROJECT_NAME_MAX_LENGTH)
     description: str | None = None
-    owner_id: int = Field(gt=0)
+    owner_id: PositiveInt
 
 
-class ProjectUpdate(ORMReadModel):
-    name: str | None = Field(default=None, min_length=1, max_length=150)
+class ProjectUpdate(BaseSchema):
+    name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=constants.PROJECT_NAME_MAX_LENGTH,
+    )
     description: str | None = None
 
     @field_validator("name")
     @classmethod
     def name_cannot_be_null(cls, value: str | None) -> str | None:
         if value is None:
-            raise ValueError("name cannot be null")
+            raise ValueError(messages.PROJECT_NAME_CANNOT_BE_NULL)
         return value
 
 

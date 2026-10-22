@@ -1,6 +1,8 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, selectinload
 
+from app.core import messages
+from app.core.exceptions import InvalidResourceReferenceError
 from app.crud.transactions import commit_or_rollback
 from app.models.project import Project
 from app.models.task import Task
@@ -10,25 +12,23 @@ from app.schemas.project import ProjectCreate, ProjectUpdate
 
 def _project_details_statement():
     return select(Project).options(
-        joinedload(Project.tasks).selectinload(Task.tags)
+        selectinload(Project.tasks).selectinload(Task.tags)
     )
 
 
 def list_projects(db: Session) -> list[Project]:
-    statement = select(Project).options(
-        selectinload(Project.tasks).selectinload(Task.tags)
-    ).order_by(Project.id)
+    statement = select(Project).order_by(Project.id)
     return list(db.scalars(statement).all())
 
 
 def get_project(db: Session, project_id: int) -> Project | None:
     statement = _project_details_statement().where(Project.id == project_id)
-    return db.scalars(statement).unique().one_or_none()
+    return db.scalars(statement).one_or_none()
 
 
 def create_project(db: Session, payload: ProjectCreate) -> Project:
     if db.get(User, payload.owner_id) is None:
-        raise LookupError("Project owner not found")
+        raise InvalidResourceReferenceError(messages.PROJECT_OWNER_NOT_FOUND)
     project = Project(**payload.model_dump())
     db.add(project)
     commit_or_rollback(db)

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.constants import PROJECT_NAME_MAX_LENGTH
 from app.db.base import Base
 from app.models.mixins import CreatedAtMixin
 
@@ -15,7 +16,7 @@ class Project(CreatedAtMixin, Base):
     __tablename__ = "projects"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(150), index=True)
+    name: Mapped[str] = mapped_column(String(PROJECT_NAME_MAX_LENGTH), index=True)
     description: Mapped[str | None] = mapped_column(Text)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
 
