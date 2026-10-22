@@ -1,11 +1,15 @@
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SqlEnum
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import ForeignKey, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.constants import TASK_STATUS_MAX_LENGTH, TASK_TITLE_MAX_LENGTH
-from app.core.enums import TaskStatus
+from app.core.constants import (
+    TASK_PRIORITY_MAX_LENGTH,
+    TASK_STATUS_MAX_LENGTH,
+    TASK_TITLE_MAX_LENGTH,
+)
+from app.core.enums import TaskPriority, TaskStatus
 from app.db.base import Base
 from app.models.mixins import CreatedAtMixin
 from app.models.task_tags import task_tags
@@ -32,6 +36,18 @@ class Task(CreatedAtMixin, Base):
             validate_strings=True,
         ),
         default=TaskStatus.TODO,
+        index=True,
+    )
+    priority: Mapped[TaskPriority] = mapped_column(
+        SqlEnum(
+            TaskPriority,
+            native_enum=False,
+            length=TASK_PRIORITY_MAX_LENGTH,
+            values_callable=lambda enum_type: [member.value for member in enum_type],
+            validate_strings=True,
+        ),
+        default=TaskPriority.MEDIUM,
+        server_default=text("'MEDIUM'"),
         index=True,
     )
     project_id: Mapped[int] = mapped_column(

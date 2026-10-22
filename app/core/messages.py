@@ -6,8 +6,13 @@ PROJECT_NAME_CANNOT_BE_NULL = "name cannot be null"
 
 USER_NOT_FOUND = "User not found"
 DUPLICATE_USER = "Username or email already exists"
+INVALID_CREDENTIALS = "Invalid username or password"
+ACCOUNT_INACTIVE = "This account is inactive"
+ADMIN_REQUIRED = "Administrator access is required"
+PROJECT_MANAGER_REQUIRED = "Project manager access is required"
 
 TASK_ASSIGNEE_NOT_FOUND = "Assignee not found"
 TASK_TAGS_INVALID = "One or more tag_ids are invalid"
+TASK_NOT_FOUND = "Task not found"
 
 DUPLICATE_TAG = "Tag name already exists"

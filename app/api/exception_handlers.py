@@ -14,6 +14,7 @@ async def handle_application_error(
     return JSONResponse(
         status_code=int(error.status_code),
         content=response.model_dump(mode="json", exclude_none=True),
+        headers=error.headers,
     )
 
 

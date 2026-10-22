@@ -1,4 +1,4 @@
-from pydantic import Field, PositiveInt, field_validator
+from pydantic import Field, field_validator
 
 from app.core import constants, messages
 from app.schemas.common import BaseSchema, ORMReadModel
@@ -8,7 +8,6 @@ from app.schemas.task import TaskRead
 class ProjectCreate(BaseSchema):
     name: str = Field(min_length=1, max_length=constants.PROJECT_NAME_MAX_LENGTH)
     description: str | None = None
-    owner_id: PositiveInt
 
 
 class ProjectUpdate(BaseSchema):

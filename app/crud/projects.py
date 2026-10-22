@@ -26,10 +26,10 @@ def get_project(db: Session, project_id: int) -> Project | None:
     return db.scalars(statement).one_or_none()
 
 
-def create_project(db: Session, payload: ProjectCreate) -> Project:
-    if db.get(User, payload.owner_id) is None:
+def create_project(db: Session, payload: ProjectCreate, owner_id: int) -> Project:
+    if db.get(User, owner_id) is None:
         raise InvalidResourceReferenceError(messages.PROJECT_OWNER_NOT_FOUND)
-    project = Project(**payload.model_dump())
+    project = Project(**payload.model_dump(), owner_id=owner_id)
     db.add(project)
     commit_or_rollback(db)
     db.refresh(project)

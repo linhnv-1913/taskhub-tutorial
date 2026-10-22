@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -35,6 +36,15 @@ class Settings(BaseSettings):
     )
 
     database_url: str = DEFAULT_DATABASE_URL
+    jwt_secret_key: SecretStr
+    access_token_expire_minutes: int = Field(default=15, ge=1, le=1440)
+
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def validate_jwt_secret_key(cls, value: SecretStr) -> SecretStr:
+        if len(value.get_secret_value()) < 64:
+            raise ValueError("JWT_SECRET_KEY must contain at least 64 characters")
+        return value
 
 
 settings = Settings()
