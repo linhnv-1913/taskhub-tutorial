@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Response, status, BackgroundTasks
 
 from app.api.dependencies import CurrentActiveUserDep, SessionDep
 from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT, error_responses
@@ -8,9 +8,12 @@ from app.crud.comments import (
     update_task_comment,
 )
 from app.schemas.comment import CommentCreate, CommentRead, CommentUpdate
+from app.services.comment_notifications import (
+    build_comment_notification,
+    send_task_comment_notification,
+)
 
 router = APIRouter()
-
 
 @router.post(
     "/{task_id}/comments",
@@ -28,13 +31,15 @@ router = APIRouter()
 def create_task_comment_route(
     task_id: int,
     payload: CommentCreate,
-
     current_user: CurrentActiveUserDep,
     db: SessionDep,
+    background_tasks: BackgroundTasks,
 ) -> CommentRead:
     comment, task = create_task_comment(db, task_id, current_user, payload)
+    notification = build_comment_notification(task, current_user, comment)
+    if notification is not None:
+        background_tasks.add_task(send_task_comment_notification, notification)
     return CommentRead.model_validate(comment)
-
 
 @router.patch(
     "/{task_id}/comments/{comment_id}",
