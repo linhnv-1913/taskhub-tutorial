@@ -1,11 +1,19 @@
+from http import HTTPStatus
+
 from fastapi import status
 
 from app.schemas.common import ErrorResponse
 
+HTTP_422_UNPROCESSABLE_CONTENT = getattr(
+    status, "HTTP_422_UNPROCESSABLE_CONTENT", HTTPStatus.UNPROCESSABLE_ENTITY
+)
+
 _ERROR_DESCRIPTIONS = {
+    status.HTTP_401_UNAUTHORIZED: "The bearer token or credentials are invalid.",
+    status.HTTP_403_FORBIDDEN: "The authenticated user is not allowed to perform this action.",
     status.HTTP_404_NOT_FOUND: "The requested resource was not found.",
     status.HTTP_409_CONFLICT: "The request conflicts with an existing resource.",
-    status.HTTP_422_UNPROCESSABLE_ENTITY: "The request data is invalid.",
+    HTTP_422_UNPROCESSABLE_CONTENT: "The request data is invalid.",
     status.HTTP_500_INTERNAL_SERVER_ERROR: "An unexpected server error occurred.",
 }
 
