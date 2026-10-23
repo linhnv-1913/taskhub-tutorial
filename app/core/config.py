@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -54,6 +54,14 @@ class Settings(BaseSettings):
                 f"{constants.JWT_SECRET_KEY_MIN_LENGTH} characters"
             )
         return value
+
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_from_email: EmailStr | None = None
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_starttls: bool = True
+    smtp_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
 
 
 settings = Settings()
