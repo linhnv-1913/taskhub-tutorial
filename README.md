@@ -1,6 +1,6 @@
 # TaskHub API
 
-TaskHub is a learning project for building a REST API with FastAPI, Pydantic v2, SQLAlchemy 2.x, and Alembic. It includes CRUD operations, JWT authentication, role- and ownership-based authorization, task filtering, pagination, bookmarks, assignment, and comments. SQLite is the default database; PostgreSQL and MySQL are available with their respective drivers.
+TaskHub is a learning project for building a REST API with FastAPI, Pydantic v2, SQLAlchemy 2.x, and Alembic. It includes CRUD operations, JWT authentication, role- and ownership-based authorization, task filtering, pagination, bookmarks, assignment, and comments. Comment email notifications use an optional SMTP configuration. SQLite is the default database; PostgreSQL and MySQL are available with their respective drivers.
 
 ## Run on Windows
 
@@ -29,6 +29,13 @@ if (-not (Select-String -Path .env -Pattern '^JWT_SECRET_KEY=.{64,}$' -Quiet)) {
 If `.env` already exists, keep its current settings and add `JWT_SECRET_KEY` only if it is missing. Never commit a real signing key. Access tokens expire after 15 minutes by default; `ACCESS_TOKEN_EXPIRE_MINUTES` can be set from 1 to 1440.
 
 Open [Swagger UI](http://127.0.0.1:8000/docs). SQLite creates `taskhub.db` in the project root after migrations run, regardless of the current working directory.
+
+To install the integration-test dependencies and run the test suite:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+.\.venv\Scripts\python.exe -m pytest
+```
 
 `requirements.lock` includes both the PostgreSQL (`psycopg`) and MySQL (`PyMySQL`) drivers. To install only the core dependencies for SQLite, replace the two package installation commands above with:
 
@@ -61,6 +68,22 @@ To install a database driver from `pyproject.toml`, use `python -m pip install -
 - `POST /api/tasks/{task_id}/comments` accepts a nonblank `content` from any active user. The author ID comes from the bearer token.
 - `PATCH /api/tasks/{task_id}/comments/{comment_id}` edits comment content. The author, an admin, or the project's owner may edit or delete a comment.
 - `DELETE /api/tasks/{task_id}/comments/{comment_id}` deletes a comment and returns 204. A comment must belong to the task in the path.
+
+Comment notifications go to the task assignee, or to the project owner when the task is unassigned. The commenter is not notified. SMTP delivery is best-effort and runs after the comment is committed; SMTP failures do not undo the comment.
+
+Configure SMTP through `.env` when notifications are needed:
+
+```dotenv
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_FROM_EMAIL=taskhub@example.com
+SMTP_USERNAME=taskhub@example.com
+SMTP_PASSWORD=replace-with-a-local-secret
+SMTP_STARTTLS=true
+SMTP_TIMEOUT_SECONDS=10
+```
+
+If `SMTP_HOST` or `SMTP_FROM_EMAIL` is missing, the API still saves comments and logs that email delivery is skipped. Keep SMTP credentials out of version control.
 
 ## Core CRUD endpoints
 

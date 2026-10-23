@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, BackgroundTasks, Response, status
 
 from app.api.dependencies import (
     CommentOwnerDep,
@@ -15,6 +15,10 @@ from app.crud.comments import (
 )
 from app.schemas.comment import CommentCreate, CommentRead, CommentUpdate
 from app.schemas.common import PaginatedResponse
+from app.services.comment_notifications import (
+    build_comment_notification,
+    send_task_comment_notification,
+)
 
 router = APIRouter()
 
@@ -62,8 +66,12 @@ def create_task_comment_route(
     payload: CommentCreate,
     current_user: CurrentActiveUserDep,
     db: SessionDep,
+    background_tasks: BackgroundTasks,
 ) -> CommentRead:
-    comment, _task = create_task_comment(db, task_id, current_user, payload)
+    comment, task = create_task_comment(db, task_id, current_user, payload)
+    notification = build_comment_notification(task, current_user, comment)
+    if notification is not None:
+        background_tasks.add_task(send_task_comment_notification, notification)
     return CommentRead.model_validate(comment)
 
 
