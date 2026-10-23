@@ -1,6 +1,7 @@
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.core import messages
 from app.core.enums import TaskPriority, TaskStatus
@@ -121,3 +122,29 @@ def unbookmark_task(db: Session, user_id: int, task_id: int) -> None:
         db.rollback()
         raise ResourceNotFoundError(messages.TASK_BOOKMARK_NOT_FOUND)
     commit_or_rollback(db)
+
+
+def assign_task(db: Session, task: Task, assignee_id: int) -> Task:
+    if db.get(User, assignee_id) is None:
+        raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
+
+    task_id = task.id
+    task.assignee_id = assignee_id
+    try:
+        commit_or_rollback(db)
+    except (IntegrityError, StaleDataError):
+        if db.get(Task, task_id) is None:
+            raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
+        if db.get(User, assignee_id) is None:
+            raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
+        raise
+
+    statement = (
+        select(Task)
+        .where(Task.id == task_id)
+        .options(selectinload(Task.tags))
+    )
+    assigned_task = db.scalars(statement).one_or_none()
+    if assigned_task is None:
+        raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
+    return assigned_task

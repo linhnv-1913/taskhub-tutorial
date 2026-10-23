@@ -18,6 +18,7 @@ from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.common import PaginationParams
+from app.models.task import Task
 
 SessionDep = Annotated[Session, Depends(get_db)]
 oauth2_scheme = OAuth2PasswordBearer(
@@ -84,3 +85,24 @@ def verify_project_manager(
 
 
 ProjectManagerDep = Annotated[Project, Depends(verify_project_manager)]
+
+
+def verify_task_project_manager(
+    task_id: int,
+    current_user: CurrentActiveUserDep,
+    db: SessionDep,
+) -> Task:
+    task = db.scalar(select(Task).where(Task.id == task_id).with_for_update())
+    if task is None:
+        raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
+    if (
+        current_user.role != UserRole.ADMIN
+        and task.project.owner_id != current_user.id
+    ):
+        raise ForbiddenError(messages.PROJECT_MANAGER_REQUIRED)
+    return task
+
+
+TaskProjectManagerDep = Annotated[
+    Task, Depends(verify_task_project_manager)
+]

@@ -1,6 +1,6 @@
 # TaskHub API
 
-TaskHub is a learning project for building a REST API with FastAPI, Pydantic v2, SQLAlchemy 2.x, and Alembic. It includes CRUD operations, JWT authentication, role- and ownership-based authorization, task filtering, pagination, and bookmarks. SQLite is the default database; PostgreSQL and MySQL are available with their respective drivers.
+TaskHub is a learning project for building a REST API with FastAPI, Pydantic v2, SQLAlchemy 2.x, and Alembic. It includes CRUD operations, JWT authentication, role- and ownership-based authorization, task filtering, pagination, bookmarks, assignment, and comments. SQLite is the default database; PostgreSQL and MySQL are available with their respective drivers.
 
 ## Run on Windows
 
@@ -56,6 +56,10 @@ To install a database driver from `pyproject.toml`, use `python -m pip install -
 - `GET /api/projects?skip=0&limit=20` and `GET /api/tags?skip=0&limit=20` use the same paginated response shape and bounds.
 - `POST /api/tasks/{task_id}/bookmark` requires an active authenticated user. The first request returns 201; repeated requests return 200. Each bookmark belongs to one user.
 - `DELETE /api/tasks/{task_id}/bookmark` removes the current user's bookmark and returns 204. It returns 404 if the task or bookmark does not exist.
+- `POST /api/tasks/{task_id}/assign` accepts an `assignee_id`; only the project owner or an admin can assign or reassign a task. The user must already exist.
+- `POST /api/tasks/{task_id}/comments` accepts a nonblank `content` from any active user. The author ID comes from the bearer token.
+- `PATCH /api/tasks/{task_id}/comments/{comment_id}` edits comment content. The author, an admin, or a PM may edit or delete a comment.
+- `DELETE /api/tasks/{task_id}/comments/{comment_id}` deletes a comment and returns 204. A comment must belong to the task in the path.
 
 ## Core CRUD endpoints
 
