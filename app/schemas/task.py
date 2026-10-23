@@ -31,3 +31,7 @@ class TaskRead(ORMReadModel):
 class BookmarkRead(ORMReadModel):
     task_id: int
     bookmarked: bool
+
+
+class TaskAssignment(BaseSchema):
+    assignee_id: PositiveInt
