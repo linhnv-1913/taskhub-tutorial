@@ -19,6 +19,12 @@ from app.schemas.common import PaginationParams
 from app.schemas.task import TaskCreate
 
 
+def _ensure_active_assignee(db: Session, assignee_id: int) -> None:
+    assignee = db.get(User, assignee_id)
+    if assignee is None or not assignee.is_active:
+        raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
+
+
 def list_tasks(
     db: Session,
     status_filter: TaskStatus | None,
@@ -62,8 +68,8 @@ def list_project_tasks(
 
 
 def create_project_task(db: Session, project: Project, payload: TaskCreate) -> Task:
-    if payload.assignee_id is not None and db.get(User, payload.assignee_id) is None:
-        raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
+    if payload.assignee_id is not None:
+        _ensure_active_assignee(db, payload.assignee_id)
 
     requested_ids = set(payload.tag_ids)
     tags = list(db.scalars(select(Tag).where(Tag.id.in_(requested_ids))).all())
@@ -125,8 +131,7 @@ def unbookmark_task(db: Session, user_id: int, task_id: int) -> None:
 
 
 def assign_task(db: Session, task: Task, assignee_id: int) -> Task:
-    if db.get(User, assignee_id) is None:
-        raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
+    _ensure_active_assignee(db, assignee_id)
 
     task_id = task.id
     task.assignee_id = assignee_id
@@ -135,8 +140,7 @@ def assign_task(db: Session, task: Task, assignee_id: int) -> Task:
     except (IntegrityError, StaleDataError):
         if db.get(Task, task_id) is None:
             raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
-        if db.get(User, assignee_id) is None:
-            raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
+        _ensure_active_assignee(db, assignee_id)
         raise
 
     statement = (

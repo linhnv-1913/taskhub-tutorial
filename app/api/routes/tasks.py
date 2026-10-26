@@ -12,15 +12,15 @@ from app.api.dependencies import (
 from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT, error_responses
 from app.core.enums import TaskPriority, TaskStatus
 from app.crud.tasks import (
+    assign_task,
     bookmark_task,
     create_project_task,
     list_project_tasks,
     list_tasks,
     unbookmark_task,
-    assign_task,
 )
 from app.schemas.common import PaginatedResponse
-from app.schemas.task import BookmarkRead, TaskCreate, TaskRead, TaskAssignment
+from app.schemas.task import BookmarkRead, TaskAssignment, TaskCreate, TaskRead
 
 router = APIRouter()
 collection_router = APIRouter()

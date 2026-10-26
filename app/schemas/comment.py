@@ -7,7 +7,10 @@ from app.schemas.common import BaseSchema, ORMReadModel
 
 
 class CommentWrite(BaseSchema):
-    content: str = Field(min_length=1, max_length=constants.COMMENT_CONTENT_MAX_LENGTH)
+    content: str = Field(
+        min_length=constants.COMMENT_CONTENT_MIN_LENGTH,
+        max_length=constants.COMMENT_CONTENT_MAX_LENGTH,
+    )
 
 
 class CommentCreate(CommentWrite):

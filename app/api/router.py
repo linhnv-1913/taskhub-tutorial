@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 
+from app.api.routes.comments import router as comments_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.tags import router as tags_router
 from app.api.routes.tasks import collection_router as tasks_collection_router
 from app.api.routes.tasks import router as tasks_router
 from app.api.routes.users import router as users_router
-from app.api.routes.comments import router as comments_router
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(users_router, prefix="/users", tags=["users"])

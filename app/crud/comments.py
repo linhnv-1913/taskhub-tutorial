@@ -1,17 +1,37 @@
-from sqlalchemy import delete, select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.orm.exc import StaleDataError
+from sqlalchemy.orm.exc import ObjectDeletedError, StaleDataError
 
 from app.core import messages
-from app.core.enums import UserRole
-from app.core.exceptions import ForbiddenError, ResourceNotFoundError
+from app.core.exceptions import ResourceNotFoundError
 from app.crud.transactions import commit_or_rollback
 from app.models.comment import Comment
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentUpdate
+from app.schemas.common import PaginationParams
+
+
+def list_task_comments(
+    db: Session, task_id: int, pagination: PaginationParams
+) -> tuple[list[Comment], int]:
+    if db.get(Task, task_id) is None:
+        raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
+
+    statement = (
+        select(Comment)
+        .where(Comment.task_id == task_id)
+        .order_by(Comment.id)
+        .offset(pagination.skip)
+        .limit(pagination.limit)
+    )
+    total = (
+        db.scalar(select(func.count(Comment.id)).where(Comment.task_id == task_id))
+        or 0
+    )
+    return list(db.scalars(statement).all()), total
 
 
 def create_task_comment(
@@ -42,82 +62,36 @@ def create_task_comment(
     return comment, task
 
 
-def _get_task_comment(db: Session, task_id: int, comment_id: int) -> Comment:
-    statement = (
-        select(Comment)
-        .where(Comment.task_id == task_id, Comment.id == comment_id)
-        .with_for_update()
-    )
-    comment = db.scalars(statement).one_or_none()
-    if comment is None:
-        raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND)
+def _lock_task_comment(db: Session, comment: Comment) -> Comment:
+    try:
+        db.refresh(comment, with_for_update=True)
+    except ObjectDeletedError:
+        db.rollback()
+        raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND) from None
     return comment
 
 
-def _ensure_comment_editor(comment: Comment, actor: User) -> None:
-    if comment.author_id == actor.id or actor.role in {
-        UserRole.ADMIN,
-        UserRole.PM,
-    }:
-        return
-    raise ForbiddenError(messages.TASK_COMMENT_AUTHOR_REQUIRED)
-
-
-def _commit_comment_mutation(
-    db: Session, task_id: int, comment_id: int
-) -> None:
+def _commit_comment_mutation(db: Session) -> None:
     try:
         commit_or_rollback(db)
-    except (IntegrityError, StaleDataError):
-        comment_exists = db.scalar(
-            select(Comment.id).where(
-                Comment.task_id == task_id,
-                Comment.id == comment_id,
-            )
-        )
-        if comment_exists is None:
-            raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND)
-        raise
+    except StaleDataError:
+        raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND) from None
 
 
 def update_task_comment(
     db: Session,
-    task_id: int,
-    comment_id: int,
-    actor: User,
+    comment: Comment,
     payload: CommentUpdate,
 ) -> Comment:
-    comment = _get_task_comment(db, task_id, comment_id)
-    _ensure_comment_editor(comment, actor)
+    comment = _lock_task_comment(db, comment)
     comment.content = payload.content
-    _commit_comment_mutation(db, task_id, comment_id)
+    _commit_comment_mutation(db)
     return comment
 
 
 def delete_task_comment(
-    db: Session, task_id: int, comment_id: int, actor: User
+    db: Session, comment: Comment
 ) -> None:
-    comment = _get_task_comment(db, task_id, comment_id)
-    _ensure_comment_editor(comment, actor)
-    try:
-        result = db.execute(
-            delete(Comment).where(
-                Comment.task_id == task_id,
-                Comment.id == comment_id,
-            )
-        )
-        if result.rowcount != 1:
-            db.rollback()
-            raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND)
-        commit_or_rollback(db)
-    except (IntegrityError, StaleDataError):
-        db.rollback()
-        comment_exists = db.scalar(
-            select(Comment.id).where(
-                Comment.task_id == task_id,
-                Comment.id == comment_id,
-            )
-        )
-        if comment_exists is None:
-            raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND)
-        raise
+    comment = _lock_task_comment(db, comment)
+    db.delete(comment)
+    _commit_comment_mutation(db)

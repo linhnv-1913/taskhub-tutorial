@@ -18,7 +18,7 @@ TASK_NOT_FOUND = "Task not found"
 TASK_BOOKMARK_NOT_FOUND = "Task bookmark not found"
 TASK_COMMENT_NOT_FOUND = "Task comment not found"
 TASK_COMMENT_AUTHOR_REQUIRED = (
-    "Only the comment author, an administrator, or a project manager may change it"
+    "Only the comment author, an administrator, or the project owner may change it"
 )
 
 DUPLICATE_TAG = "Tag name already exists"
