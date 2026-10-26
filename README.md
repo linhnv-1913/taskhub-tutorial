@@ -30,6 +30,18 @@ If `.env` already exists, keep its current settings and add `JWT_SECRET_KEY` onl
 
 Open [Swagger UI](http://127.0.0.1:8000/docs). SQLite creates `taskhub.db` in the project root after migrations run, regardless of the current working directory.
 
+## CORS, logging, and Docker Compose
+
+`CORS_ALLOWED_ORIGINS` is a JSON list of exact browser origins, for example `["http://localhost:3000"]`. Leave it empty when browser clients are not used. Wildcard origins are rejected; bearer-token requests allow the `Authorization` and `Content-Type` headers without cookie credentials. Set `LOG_LEVEL` to `CRITICAL`, `ERROR`, `WARNING`, `INFO`, or `DEBUG`. Application logs use the console, and Uvicorn logs request access and unhandled server tracebacks.
+
+To run the API with PostgreSQL in Docker Compose, create `.env` from `.env.example` if it does not exist; preserve an existing `.env` and add any missing values. Set a JWT secret and set `POSTGRES_PASSWORD` to a generated hexadecimal value. Generate a 64-character value with `python -c "import secrets; print(secrets.token_hex(32))"`. Set `CORS_ALLOWED_ORIGINS` in `.env` to the frontend's exact JSON origin list before starting the stack.
+
+```powershell
+docker compose up --build
+```
+
+Compose waits for PostgreSQL, applies Alembic migrations, then starts the API. The API is available on the host at `127.0.0.1:8000`; its database-backed readiness check is available at [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health). View API logs with `docker compose logs -f api`. Stop the services with `docker compose down`; the named PostgreSQL volume remains. The API port is bound to localhost for use behind a reverse proxy. A public deployment still needs its own TLS, secret management, and database backup setup.
+
 To install the integration-test dependencies and run the test suite:
 
 ```powershell

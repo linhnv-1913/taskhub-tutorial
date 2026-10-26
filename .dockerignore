@@ -1,0 +1,17 @@
+.env*
+.git/
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+tests/
+taskhub.db
