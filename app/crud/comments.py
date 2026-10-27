@@ -1,7 +1,7 @@
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.orm.exc import ObjectDeletedError, StaleDataError
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.core import messages
 from app.core.exceptions import ResourceNotFoundError
@@ -63,12 +63,16 @@ def create_task_comment(
 
 
 def _lock_task_comment(db: Session, comment: Comment) -> Comment:
-    try:
-        db.refresh(comment, with_for_update=True)
-    except ObjectDeletedError:
-        db.rollback()
-        raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND) from None
-    return comment
+    statement = (
+        select(Comment)
+        .where(Comment.id == comment.id)
+        .with_for_update(of=Comment)
+        .execution_options(populate_existing=True)
+    )
+    locked_comment = db.scalars(statement).one_or_none()
+    if locked_comment is None:
+        raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND)
+    return locked_comment
 
 
 def _commit_comment_mutation(db: Session) -> None:
@@ -93,5 +97,8 @@ def delete_task_comment(
     db: Session, comment: Comment
 ) -> None:
     comment = _lock_task_comment(db, comment)
-    db.delete(comment)
+    result = db.execute(delete(Comment).where(Comment.id == comment.id))
+    if result.rowcount == 0:
+        db.rollback()
+        raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND)
     _commit_comment_mutation(db)
