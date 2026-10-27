@@ -9,7 +9,7 @@ from app.core.logging_config import configure_logging
 configure_logging(settings.log_level)
 app = FastAPI(
     title="TaskHub API",
-    description="REST API thực hành FastAPI, SQLAlchemy và quan hệ dữ liệu.",
+    description="A REST API for practicing FastAPI, SQLAlchemy, and data relationships.",
     version="0.1.0",
 )
 app.add_middleware(

@@ -29,3 +29,7 @@ class AuthenticationError(ApplicationError):
 
 class ForbiddenError(ApplicationError):
     status_code = HTTPStatus.FORBIDDEN
+
+
+class ServiceUnavailableError(ApplicationError):
+    status_code = HTTPStatus.SERVICE_UNAVAILABLE

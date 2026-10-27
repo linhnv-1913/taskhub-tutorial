@@ -1,4 +1,22 @@
 REQUEST_VALIDATION_FAILED = "Request validation failed"
+SERVICE_UNAVAILABLE = "Service unavailable"
+DATABASE_READINESS_FAILED = "Database readiness probe failed"
+
+CORS_EXPLICIT_ORIGINS_REQUIRED = "CORS_ALLOWED_ORIGINS must list explicit origins"
+CORS_HTTP_ORIGINS_REQUIRED = "CORS_ALLOWED_ORIGINS must contain only HTTP(S) origins"
+
+CLI_DESCRIPTION = "TaskHub operator commands"
+CLI_CREATE_ADMIN_HELP = "Create a new active administrator"
+CLI_SEED_HELP = "Create demo data for an existing active user"
+CLI_OWNER_HELP = "Existing owner's username"
+CLI_PASSWORD_PROMPT = "Password: "
+CLI_PASSWORD_CONFIRM_PROMPT = "Confirm password: "
+CLI_PASSWORD_MISMATCH = "Passwords do not match."
+CLI_ADMIN_CREATED = "Created administrator '{username}' (id={id})."
+CLI_DEMO_READY = "Demo data is ready."
+CLI_VALIDATION_ERROR = "{field}: {message}"
+CLI_DATABASE_FAILED = "Database operation failed. Check connectivity and migrations."
+CLI_CANCELLED = "Command cancelled."
 
 PROJECT_NOT_FOUND = "Project not found"
 PROJECT_OWNER_NOT_FOUND = "Project owner not found"

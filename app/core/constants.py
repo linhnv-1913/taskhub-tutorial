@@ -37,3 +37,7 @@ TAG_CACHE_RETRY_ATTEMPTS = 0
 TAG_CACHE_FIRST_PAGE_OFFSET = 0
 TAG_CACHE_VERSION_KEY = "taskhub:tags:version"
 TAG_CACHE_KEY_PREFIX = "taskhub:tags"
+
+DEMO_PROJECT_NAME = "TaskHub demo"
+DEMO_PROJECT_DESCRIPTION = "Sample project created by the seed command."
+DEMO_TASK_TITLES = ("Explore the API", "Create your first task")

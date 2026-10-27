@@ -6,6 +6,7 @@ from pydantic import EmailStr, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
+from app.core import messages
 from app.core.constants import (
     DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES,
     DEFAULT_SMTP_PORT,
@@ -68,7 +69,7 @@ class Settings(BaseSettings):
     def validate_cors_allowed_origins(cls, value: list[str]) -> list[str]:
         origins = [origin.strip() for origin in value]
         if "*" in origins:
-            raise ValueError("CORS_ALLOWED_ORIGINS must list explicit origins")
+            raise ValueError(messages.CORS_EXPLICIT_ORIGINS_REQUIRED)
 
         normalized: list[str] = []
         for origin in origins:
@@ -82,9 +83,7 @@ class Settings(BaseSettings):
                 or parsed.query
                 or parsed.fragment
             ):
-                raise ValueError(
-                    "CORS_ALLOWED_ORIGINS must contain only HTTP(S) origins"
-                )
+                raise ValueError(messages.CORS_HTTP_ORIGINS_REQUIRED)
             normalized.append(f"{parsed.scheme}://{parsed.netloc}")
         return normalized
 

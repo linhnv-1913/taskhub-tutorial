@@ -1,3 +1,6 @@
+x-app-environment: &app-environment
+  DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-taskhub}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-taskhub}"
+
 services:
   db:
     image: postgres:16-alpine
@@ -17,22 +20,22 @@ services:
 
   migrate:
     build: .
+    image: taskhub-api:local
     env_file:
       - .env
-    environment:
-      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-taskhub}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-taskhub}"
+    environment: *app-environment
     command: ["python", "-m", "alembic", "upgrade", "head"]
     depends_on:
       db:
         condition: service_healthy
-    restart: "no"   
+    restart: "no"
 
   api:
-    build: .
+    image: taskhub-api:local
+    pull_policy: never
     env_file:
       - .env
-    environment:
-      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-taskhub}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-taskhub}"
+    environment: *app-environment
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
