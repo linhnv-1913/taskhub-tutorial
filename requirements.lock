@@ -35,6 +35,7 @@ pwdlib==0.3.1
 PyMySQL==1.2.3
 python-dotenv==1.2.4
 python-multipart==0.0.32
+redis==6.4.0
 PyYAML==6.0.3
 SQLAlchemy==2.1.5
 starlette==1.9.0

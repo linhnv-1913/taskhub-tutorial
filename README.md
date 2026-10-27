@@ -85,6 +85,12 @@ SMTP_TIMEOUT_SECONDS=10
 
 If `SMTP_HOST` or `SMTP_FROM_EMAIL` is missing, the API still saves comments and logs that email delivery is skipped. Keep SMTP credentials out of version control.
 
+## Optional Redis tag cache
+
+Set `REDIS_URL=redis://localhost:6379/0` to cache authenticated `GET /api/tags` responses separately for each page. `TAG_CACHE_TTL_SECONDS` defaults to 60 and accepts 1–3600 seconds. After a tag is created, cached pages are invalidated; Redis failures fall back to the database without preventing tag creation. A failed invalidation or a read concurrent with creation may temporarily return stale data until the TTL expires. Use a separate Redis database for each TaskHub environment.
+
+Redis integration tests require an isolated Redis database. For example, set `TASKHUB_TEST_REDIS_URL=redis://localhost:6379/1` before running pytest; without it, those tests are skipped.
+
 ## Core CRUD endpoints
 
 - `GET /api/users/{username}/profile` returns the profile and project list to an authenticated user.

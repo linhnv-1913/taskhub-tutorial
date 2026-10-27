@@ -29,7 +29,7 @@ def build_comment_notification(
     return CommentNotification(
         recipient_email=recipient.email,
         task_title=task.title,
-        commenter_name=author.full_name,
+        commenter_name=author.full_name or author.username,
         comment_content=comment.content,
     )
 
@@ -43,7 +43,8 @@ def send_task_comment_notification(notification: CommentNotification) -> None:
 
     try:
         message = EmailMessage()
-        message["Subject"] = f"New comment on task: {notification.task_title}"
+        subject_title = " ".join(notification.task_title.splitlines())
+        message["Subject"] = f"New comment on task: {subject_title}"
         message["From"] = str(settings.smtp_from_email)
         message["To"] = notification.recipient_email
         message.set_content(

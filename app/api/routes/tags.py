@@ -7,9 +7,10 @@ from app.api.dependencies import (
     SessionDep,
 )
 from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT, error_responses
-from app.crud.tags import create_tag, list_tags
+from app.crud.tags import create_tag
 from app.schemas.common import PaginatedResponse
 from app.schemas.tag import TagCreate, TagRead
+from app.services.tag_cache import get_cached_tags, invalidate_tag_cache
 
 router = APIRouter()
 
@@ -30,10 +31,7 @@ def read_tags(
     pagination: PaginationDep,
     _current_user: CurrentActiveUserDep,
 ) -> PaginatedResponse[TagRead]:
-    tags, total = list_tags(db, pagination)
-    return PaginatedResponse[TagRead](
-        items=[TagRead.model_validate(tag) for tag in tags], total=total
-    )
+    return get_cached_tags(db, pagination)
 
 
 @router.post(
@@ -54,4 +52,6 @@ def create_tag_route(
     db: SessionDep,
     _admin: AdminUserDep,
 ) -> TagRead:
-    return TagRead.model_validate(create_tag(db, payload))
+    tag = create_tag(db, payload)
+    invalidate_tag_cache()
+    return TagRead.model_validate(tag)

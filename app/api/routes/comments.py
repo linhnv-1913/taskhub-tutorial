@@ -8,17 +8,13 @@ from app.api.dependencies import (
 )
 from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT, error_responses
 from app.crud.comments import (
-    create_task_comment,
     delete_task_comment,
     list_task_comments,
     update_task_comment,
 )
 from app.schemas.comment import CommentCreate, CommentRead, CommentUpdate
 from app.schemas.common import PaginatedResponse
-from app.services.comment_notifications import (
-    build_comment_notification,
-    send_task_comment_notification,
-)
+from app.services.comments import create_comment_with_notification
 
 router = APIRouter()
 
@@ -68,10 +64,9 @@ def create_task_comment_route(
     db: SessionDep,
     background_tasks: BackgroundTasks,
 ) -> CommentRead:
-    comment, task = create_task_comment(db, task_id, current_user, payload)
-    notification = build_comment_notification(task, current_user, comment)
-    if notification is not None:
-        background_tasks.add_task(send_task_comment_notification, notification)
+    comment = create_comment_with_notification(
+        db, task_id, current_user, payload, background_tasks
+    )
     return CommentRead.model_validate(comment)
 
 
