@@ -7,10 +7,12 @@ from app.api.dependencies import (
     PaginationDep,
     ProjectManagerDep,
     SessionDep,
+    TaskProjectManagerDep,
 )
 from app.api.responses import HTTP_422_UNPROCESSABLE_CONTENT, error_responses
 from app.core.enums import TaskPriority, TaskStatus
 from app.crud.tasks import (
+    assign_task,
     bookmark_task,
     create_project_task,
     list_project_tasks,
@@ -18,7 +20,7 @@ from app.crud.tasks import (
     unbookmark_task,
 )
 from app.schemas.common import PaginatedResponse
-from app.schemas.task import BookmarkRead, TaskCreate, TaskRead
+from app.schemas.task import BookmarkRead, TaskAssignment, TaskCreate, TaskRead
 
 router = APIRouter()
 collection_router = APIRouter()
@@ -143,3 +145,23 @@ def delete_task_bookmark(
 ) -> Response:
     unbookmark_task(db, current_user.id, task_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@collection_router.post(
+    "/{task_id}/assign",
+    response_model=TaskRead,
+    summary="Assign a task to an existing user",
+    responses=error_responses(
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+        status.HTTP_404_NOT_FOUND,
+        HTTP_422_UNPROCESSABLE_CONTENT,
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    ),
+)
+def assign_task_route(
+    payload: TaskAssignment,
+    task: TaskProjectManagerDep,
+    db: SessionDep,
+) -> TaskRead:
+    return TaskRead.model_validate(assign_task(db, task, payload.assignee_id))

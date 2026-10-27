@@ -1,6 +1,7 @@
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.core import messages
 from app.core.enums import TaskPriority, TaskStatus
@@ -16,6 +17,12 @@ from app.models.task_bookmarks import task_bookmarks
 from app.models.user import User
 from app.schemas.common import PaginationParams
 from app.schemas.task import TaskCreate
+
+
+def _ensure_active_assignee(db: Session, assignee_id: int) -> None:
+    assignee = db.get(User, assignee_id)
+    if assignee is None or not assignee.is_active:
+        raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
 
 
 def list_tasks(
@@ -61,8 +68,8 @@ def list_project_tasks(
 
 
 def create_project_task(db: Session, project: Project, payload: TaskCreate) -> Task:
-    if payload.assignee_id is not None and db.get(User, payload.assignee_id) is None:
-        raise InvalidResourceReferenceError(messages.TASK_ASSIGNEE_NOT_FOUND)
+    if payload.assignee_id is not None:
+        _ensure_active_assignee(db, payload.assignee_id)
 
     requested_ids = set(payload.tag_ids)
     tags = list(db.scalars(select(Tag).where(Tag.id.in_(requested_ids))).all())
@@ -121,3 +128,27 @@ def unbookmark_task(db: Session, user_id: int, task_id: int) -> None:
         db.rollback()
         raise ResourceNotFoundError(messages.TASK_BOOKMARK_NOT_FOUND)
     commit_or_rollback(db)
+
+
+def assign_task(db: Session, task: Task, assignee_id: int) -> Task:
+    _ensure_active_assignee(db, assignee_id)
+
+    task_id = task.id
+    task.assignee_id = assignee_id
+    try:
+        commit_or_rollback(db)
+    except (IntegrityError, StaleDataError):
+        if db.get(Task, task_id) is None:
+            raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
+        _ensure_active_assignee(db, assignee_id)
+        raise
+
+    statement = (
+        select(Task)
+        .where(Task.id == task_id)
+        .options(selectinload(Task.tags))
+    )
+    assigned_task = db.scalars(statement).one_or_none()
+    if assigned_task is None:
+        raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
+    return assigned_task

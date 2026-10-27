@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Query
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core import constants, messages
 from app.core.enums import UserRole
@@ -15,7 +15,9 @@ from app.core.exceptions import (
 from app.core.security import decode_access_token
 from app.crud.projects import get_project
 from app.db.session import get_db
+from app.models.comment import Comment
 from app.models.project import Project
+from app.models.task import Task
 from app.models.user import User
 from app.schemas.common import PaginationParams
 
@@ -75,12 +77,63 @@ def verify_project_manager(
     project = get_project(db, project_id)
     if project is None:
         raise ResourceNotFoundError(messages.PROJECT_NOT_FOUND)
-    if (
-        current_user.role != UserRole.ADMIN
-        and project.owner_id != current_user.id
-    ):
+    if not _can_manage_project(project, current_user):
         raise ForbiddenError(messages.PROJECT_MANAGER_REQUIRED)
     return project
 
 
 ProjectManagerDep = Annotated[Project, Depends(verify_project_manager)]
+
+
+def _can_manage_project(project: Project, current_user: User) -> bool:
+    return (
+        current_user.role == UserRole.ADMIN
+        or project.owner_id == current_user.id
+    )
+
+
+def verify_task_project_manager(
+    task_id: int,
+    current_user: CurrentActiveUserDep,
+    db: SessionDep,
+) -> Task:
+    statement = (
+        select(Task)
+        .where(Task.id == task_id)
+        .options(joinedload(Task.project))
+    )
+    task = db.scalar(statement)
+    if task is None:
+        raise ResourceNotFoundError(messages.TASK_NOT_FOUND)
+    if not _can_manage_project(task.project, current_user):
+        raise ForbiddenError(messages.PROJECT_MANAGER_REQUIRED)
+    return task
+
+
+TaskProjectManagerDep = Annotated[
+    Task, Depends(verify_task_project_manager)
+]
+
+
+def verify_comment_owner(
+    task_id: int,
+    comment_id: int,
+    current_user: CurrentActiveUserDep,
+    db: SessionDep,
+) -> Comment:
+    statement = (
+        select(Comment)
+        .where(Comment.id == comment_id, Comment.task_id == task_id)
+        .options(joinedload(Comment.task).joinedload(Task.project))
+    )
+    comment = db.scalar(statement)
+    if comment is None:
+        raise ResourceNotFoundError(messages.TASK_COMMENT_NOT_FOUND)
+    if comment.author_id != current_user.id and not _can_manage_project(
+        comment.task.project, current_user
+    ):
+        raise ForbiddenError(messages.TASK_COMMENT_AUTHOR_REQUIRED)
+    return comment
+
+
+CommentOwnerDep = Annotated[Comment, Depends(verify_comment_owner)]
