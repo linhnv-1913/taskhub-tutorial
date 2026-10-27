@@ -3,12 +3,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import messages
-from app.core.security import hash_password, verify_password
+from app.core.enums import UserRole
 from app.core.exceptions import (
     AuthenticationError,
     DuplicateResourceError,
     ForbiddenError,
 )
+from app.core.security import hash_password, verify_password
 from app.crud.transactions import commit_or_rollback
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -31,7 +32,9 @@ def _ensure_user_available(
         raise DuplicateResourceError(messages.DUPLICATE_USER)
 
 
-def create_user(db: Session, payload: UserCreate) -> User:
+def create_user(
+    db: Session, payload: UserCreate, *, role: UserRole = UserRole.MEMBER
+) -> User:
     normalized_email = str(payload.email).lower()
     _ensure_user_available(db, payload.username, normalized_email)
     user = User(
@@ -39,6 +42,7 @@ def create_user(db: Session, payload: UserCreate) -> User:
         email=normalized_email,
         full_name=payload.full_name,
         password_hash=hash_password(payload.password),
+        role=role,
     )
     db.add(user)
     try:

@@ -1,9 +1,12 @@
 from pathlib import Path
+from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import EmailStr, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
+from app.core import messages
 from app.core.constants import (
     DEFAULT_ACCESS_TOKEN_EXPIRE_MINUTES,
     DEFAULT_SMTP_PORT,
@@ -58,6 +61,31 @@ class Settings(BaseSettings):
         ge=MIN_ACCESS_TOKEN_EXPIRE_MINUTES,
         le=MAX_ACCESS_TOKEN_EXPIRE_MINUTES,
     )
+    cors_allowed_origins: list[str] = Field(default_factory=list)
+    log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = "INFO"
+
+    @field_validator("cors_allowed_origins")
+    @classmethod
+    def validate_cors_allowed_origins(cls, value: list[str]) -> list[str]:
+        origins = [origin.strip() for origin in value]
+        if "*" in origins:
+            raise ValueError(messages.CORS_EXPLICIT_ORIGINS_REQUIRED)
+
+        normalized: list[str] = []
+        for origin in origins:
+            parsed = urlsplit(origin)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.netloc
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError(messages.CORS_HTTP_ORIGINS_REQUIRED)
+            normalized.append(f"{parsed.scheme}://{parsed.netloc}")
+        return normalized
 
     @field_validator("jwt_secret_key")
     @classmethod
